@@ -4,21 +4,23 @@ For AI agents (Cursor, Copilot, etc.) working in this repo.
 
 ## What this project does
 
-- **MERALCO PH API**: REST API that scrapes current MERALCO (Manila Electric Company) electricity rates from the Philippines and serves them as JSON.
-- Scrapes `https://company.meralco.com.ph/news-and-advisories` rate announcement pages, caches results, and exposes `/rates` and `/health`.
+- **MERALCO PH API**: REST API that parses MERALCO (Manila Electric Company) electricity rate schedule PDFs and serves residential rates as JSON.
+- Downloads monthly rate schedule PDFs from MERALCO's S3 bucket, extracts all 8 residential tiers with VAT-inclusive computation, and computes month-over-month rate changes.
 - Used for Home Assistant and similar automation; not affiliated with MERALCO.
 
 ## Repo layout
 
 | Path | Purpose |
 |------|---------|
-| `src/scraper.py` | Scraping logic: URL generation, pyppeteer fetch, BeautifulSoup parsing. **URL pattern lives in `get_month_url()`.** |
-| `src/api.py` | Flask app: `/`, `/rates`, `/health`; cache and fallback (current month → previous month). |
+| `src/parser.py` | PDF download, table extraction, rate parsing, VAT computation, month diff. **URL pattern lives in `get_pdf_url()`.** |
+| `src/api.py` | Flask app: `/`, `/rates`, `/rates/typical`, `/rates/<tier>`, `/health`; cache and fallback (current month → previous month). |
 | `src/__init__.py` | Package root; **`__version__`** is defined here. |
-| `tests/test_api.py` | Pytest tests for API and cache behavior (mocked scraper). |
+| `tests/test_parser.py` | Pytest tests for PDF parsing, rate computation, and rate changes (uses real PDF fixtures). |
+| `tests/test_api.py` | Pytest tests for API routes and cache behavior (mocked parser). |
+| `tests/fixtures/` | Real MERALCO rate schedule PDFs for testing. |
 | `scripts/bump_version.py` | Bump version in `src/__init__.py` and `src/api.py`. Supports `1.2.0` or `major` / `minor` / `patch`. Does **not** edit CHANGELOG. |
 | `CHANGELOG.md` | Human-maintained; Keep a Changelog style. Update manually when releasing. |
-| `docs/thoughts/` | Local notes (e.g. URL pattern history); **gitignored**. |
+| `docs/thoughts/` | Local notes; **gitignored**. |
 | `Pipfile` | Pipenv deps and scripts: `start`, `test`, `bump`. |
 | `Dockerfile` / `docker-compose.yml` | Run API in container. |
 
@@ -26,7 +28,7 @@ For AI agents (Cursor, Copilot, etc.) working in this repo.
 
 - **Version**: Must be set in both `src/__init__.py` (`__version__`) and `src/api.py` (`"version"` in index response). Use `pipenv run bump patch` (or `minor` / `major` / explicit `1.x.x`).
 - **Changelog**: Updated by hand when releasing; bump script reminds you.
-- **MERALCO URLs**: The site changes URL patterns periodically. When they change, update `get_month_url()` in `src/scraper.py` and optionally note the pattern in `docs/thoughts/` (local only). Current format: `higher-residential-rates-{month}-{year}` and `lower-residential-rates-{month}-{year}` (month lowercase, e.g. `february`).
+- **PDF URL pattern**: `https://meralcomain.s3.ap-southeast-1.amazonaws.com/{YYYY-MM}/{MM-YYYY}_rate_schedule.pdf`. If MERALCO changes this pattern, update `get_pdf_url()` in `src/parser.py`.
 
 ## Commands
 
@@ -36,11 +38,11 @@ For AI agents (Cursor, Copilot, etc.) working in this repo.
 
 ## Tech stack
 
-- Python 3.12, Flask, pyppeteer (headless Chromium), BeautifulSoup, python-dateutil.
-- Tests: pytest with mocks; no live scraping in CI.
+- Python 3.12, Flask, pdfplumber (PDF parsing), python-dateutil.
+- Tests: pytest with real PDF fixtures and mocks; no live downloads in CI.
 
-## When changing the scraper
+## When changing the parser
 
-1. URL or HTML structure change → update `src/scraper.py` (`get_month_url()` and/or `parse_rates()`).
+1. PDF URL pattern or table structure change → update `src/parser.py` (`get_pdf_url()`, column indices, or `parse_residential_tiers()`).
 2. Run tests: `pipenv run test`.
 3. If you bump version, run `pipenv run bump patch` (or appropriate part) and update `CHANGELOG.md` manually.

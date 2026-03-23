@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-03-23
+
+### Changed
+- **BREAKING**: Switched from web scraping to PDF-based rate parsing
+- New API routes: `/rates`, `/rates/typical`, `/rates/<tier>`
+- Response includes all 8 residential tiers with rate, rate_change, rate_change_percent
+- Month-over-month rate changes computed by diffing current and previous month PDFs
+- Standardized response shape with `success`, `error`, `warning`, `date`, `data`, `meta`
+- Renamed `src/scraper.py` to `src/parser.py`
+- Docker image significantly smaller (no Chromium dependency)
+
+### Removed
+- pyppeteer and beautifulsoup4 dependencies (replaced by pdfplumber)
+- `trend` and `raw_text` fields from response
+
 ## [1.1.2] - 2026-02-21
 
 ### Fixed
@@ -54,7 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added project signature
 - Removed redundant sentence about MERALCO
 
-[1.1.2]: https://github.com/rairulyle/meralco-ph/compare/76aa0f2da563d8a6b8e162297583305fad153a93...HEAD
+[2.0.0]: https://github.com/rairulyle/meralco-ph/compare/3ca1a31...HEAD
+[1.1.2]: https://github.com/rairulyle/meralco-ph/compare/76aa0f2da563d8a6b8e162297583305fad153a93...3ca1a31
 [1.1.1]: https://github.com/rairulyle/meralco-ph/compare/e5c841beceb9963acf638ca2bbb06d300ba9b9e6...76aa0f2da563d8a6b8e162297583305fad153a93
 [1.1.0]: https://github.com/rairulyle/meralco-ph/compare/509d4782be32d639f2fa711437c36117941121fb...e5c841beceb9963acf638ca2bbb06d300ba9b9e6
 [1.0.0]: https://github.com/rairulyle/meralco-ph/compare/509d4782be32d639f2fa711437c36117941121fb...e5c841beceb9963acf638ca2bbb06d300ba9b9e6
