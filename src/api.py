@@ -1,8 +1,8 @@
 """
 MERALCO API - Philippines Electricity Rate API
 
-Provides a REST endpoint for current MERALCO (Manila Electric Company)
-electricity rates in the Philippines.
+Provides REST endpoints for current MERALCO (Manila Electric Company)
+electricity rates in the Philippines, parsed from official rate schedule PDFs.
 """
 
 import logging
@@ -26,9 +26,21 @@ FALLBACK_RETRY_SECONDS = 3600
 _cache = {"data": None, "month": None, "is_fallback": False, "timestamp": None}
 _fetch_lock = threading.Lock()
 
+# Map tier slugs to tier names
+TIER_SLUG_MAP = {
+    "0-20": "0-20 kWh",
+    "21-50": "21-50 kWh",
+    "51-70": "51-70 kWh",
+    "71-100": "71-100 kWh",
+    "101-200": "101-200 kWh",
+    "201-300": "201-300 kWh",
+    "301-400": "301-400 kWh",
+    "over-400": "Over 400 kWh",
+    "typical": "101-200 kWh",
+}
 
-def is_cache_valid() -> bool:
-    """Check if cache is valid for the current month."""
+
+def _is_cache_valid() -> bool:
     if not _cache["data"] or not _cache["month"]:
         return False
 
@@ -45,13 +57,53 @@ def is_cache_valid() -> bool:
     return False
 
 
+def _fetch_and_cache() -> dict:
+    """Fetch rates, update cache, and return the raw result."""
+    if _is_cache_valid():
+        return _cache["data"]
+
+    with _fetch_lock:
+        if _is_cache_valid():
+            return _cache["data"]
+
+        logger.info("Cache expired or empty, fetching fresh data...")
+        now = datetime.now()
+        result = get_meralco_rates()
+
+        if result.get("success"):
+            _cache["data"] = result
+            _cache["month"] = (now.year, now.month)
+            _cache["is_fallback"] = bool(result.get("warning"))
+            _cache["timestamp"] = now
+            return result
+
+        logger.warning("Failed to fetch rates: %s", result.get("error"))
+
+        if _cache["data"] and _cache["data"].get("success"):
+            stale = {**_cache["data"]}
+            if not stale.get("warning"):
+                stale["warning"] = "Current rates temporarily unavailable. Using cached values."
+            return stale
+
+        return result
+
+
+def _find_tier(data: list[dict], tier_name: str) -> dict | None:
+    for tier in data:
+        if tier["name"] == tier_name:
+            return tier
+    return None
+
+
 @app.route("/")
 def index():
     return jsonify({
         "service": "MERALCO API",
-        "version": "1.1.2",
+        "version": "2.0.0",
         "endpoints": {
-            "/rates": "Get current electricity rates",
+            "/rates": "Get all residential tier rates",
+            "/rates/typical": "Get typical household (200 kWh) rate",
+            "/rates/<tier>": "Get rate for a specific tier (e.g. /rates/101-200, /rates/over-400)",
             "/health": "Health check",
         }
     })
@@ -62,61 +114,52 @@ def health():
     return jsonify({"status": "ok"})
 
 
-def clean_response(data: dict) -> dict:
-    """Remove null values from response."""
-    return {k: v for k, v in data.items() if v is not None}
-
-
 @app.route("/rates")
 def rates():
-    """Get current MERALCO electricity rates."""
-    if is_cache_valid():
-        logger.info("Returning cached data for %s-%s",
-                    _cache["month"][0], _cache["month"][1])
-        return jsonify(clean_response(_cache["data"]))
+    result = _fetch_and_cache()
+    return jsonify(result)
 
-    with _fetch_lock:
-        if is_cache_valid():
-            logger.info("Returning cached data for %s-%s",
-                        _cache["month"][0], _cache["month"][1])
-            return jsonify(clean_response(_cache["data"]))
 
-        logger.info("Cache expired or empty, fetching fresh data...")
-        now = datetime.now()
-        data = get_meralco_rates()
+@app.route("/rates/<tier_slug>")
+def rates_by_tier(tier_slug):
+    result = _fetch_and_cache()
 
-        if data.get("success"):
-            if data.get("warning"):
-                _cache["data"] = data
-                _cache["month"] = (now.year, now.month)
-                _cache["is_fallback"] = True
-                _cache["timestamp"] = now
-                logger.info(
-                    "Using previous month data - cached with %ds retry interval", FALLBACK_RETRY_SECONDS)
-            else:
-                _cache["data"] = data
-                _cache["month"] = (now.year, now.month)
-                _cache["is_fallback"] = False
-                _cache["timestamp"] = now
-                logger.info(
-                    "Successfully fetched current month rate: %s PHP/kWh", data["data"].get("rate_kwh"))
-            return jsonify(clean_response(data))
+    if not result.get("success"):
+        return jsonify(result)
 
-        logger.warning("Failed to fetch rates: %s", data.get("error"))
+    tier_name = TIER_SLUG_MAP.get(tier_slug)
+    if not tier_name:
+        return jsonify({
+            "success": False,
+            "error": "Tier not found",
+            "warning": None,
+            "date": result.get("date"),
+            "data": None,
+            "meta": result.get("meta"),
+        }), 404
 
-        if _cache["data"] and _cache["data"].get("success"):
-            stale_data = _cache["data"].copy()
-            if not stale_data.get("warning"):
-                stale_data["warning"] = "Current rates temporarily unavailable. Using cached values."
-            logger.info("Returning stale cached data from %s-%s",
-                        _cache["month"][0], _cache["month"][1])
-            return jsonify(clean_response(stale_data))
+    tier = _find_tier(result.get("data", []), tier_name)
+    if not tier:
+        return jsonify({
+            "success": False,
+            "error": "Tier not found",
+            "warning": None,
+            "date": result.get("date"),
+            "data": None,
+            "meta": result.get("meta"),
+        }), 404
 
-        return jsonify(clean_response(data))
+    return jsonify({
+        "success": True,
+        "error": None,
+        "warning": result.get("warning"),
+        "date": result.get("date"),
+        "data": tier,
+        "meta": result.get("meta"),
+    })
 
 
 def main():
-    """Main entry point for running the API server."""
     app.run(host="0.0.0.0", port=5000, debug=True)
 
 
