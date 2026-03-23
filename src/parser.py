@@ -427,6 +427,7 @@ def get_meralco_rates() -> dict:
     result["success"] = True
     result["date"] = current_parsed["billing_date"]
     result["data"] = tiers_with_changes
+    result["typical_rate"] = current_parsed["rate_kwh"]
     result["meta"]["source"] = current_url
 
     # Clean up old cached PDFs, keep only current and previous

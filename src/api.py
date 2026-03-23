@@ -123,7 +123,9 @@ def health():
 @app.route("/rates")
 def rates():
     result = _fetch_and_cache()
-    return jsonify(_clean_response(result))
+    # typical_rate is internal, don't expose in /rates
+    response = {k: v for k, v in result.items() if k != "typical_rate"}
+    return jsonify(_clean_response(response))
 
 
 @app.route("/rates/<tier_slug>")
@@ -153,11 +155,16 @@ def rates_by_tier(tier_slug):
             "meta": result.get("meta"),
         })), 404
 
+    # For /rates/typical, use the rate that includes fixed monthly charges
+    data = {**tier}
+    if tier_slug == "typical" and result.get("typical_rate"):
+        data["rate"] = result["typical_rate"]
+
     return jsonify(_clean_response({
         "success": True,
         "warning": result.get("warning"),
         "date": result.get("date"),
-        "data": tier,
+        "data": data,
         "meta": result.get("meta"),
     }))
 
