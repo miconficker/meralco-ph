@@ -20,6 +20,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.json.sort_keys = False
 
 FALLBACK_RETRY_SECONDS = 3600
 

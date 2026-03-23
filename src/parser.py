@@ -249,19 +249,25 @@ def compute_rate_changes(current_tiers: list[dict], previous_tiers: list[dict] |
     """
     result = []
     for i, tier in enumerate(current_tiers):
-        entry = {**tier}
         if previous_tiers and i < len(previous_tiers):
             prev_rate = previous_tiers[i]["rate"]
             change = round(tier["rate"] - prev_rate, 4)
             pct = round((change / prev_rate) * 100, 2) if prev_rate else None
-            entry["rate_change"] = change
-            entry["rate_change_percent"] = pct
-            entry["trend"] = "up" if change > 0 else "down" if change < 0 else "stable"
+            trend = "up" if change > 0 else "down" if change < 0 else "stable"
         else:
-            entry["rate_change"] = None
-            entry["rate_change_percent"] = None
-            entry["trend"] = None
-        result.append(entry)
+            change = None
+            pct = None
+            trend = None
+
+        result.append({
+            "name": tier["name"],
+            "min_kwh": tier["min_kwh"],
+            "max_kwh": tier["max_kwh"],
+            "rate": tier["rate"],
+            "rate_change": change,
+            "rate_change_percent": pct,
+            "trend": trend,
+        })
     return result
 
 
