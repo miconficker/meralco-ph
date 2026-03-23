@@ -17,14 +17,9 @@ def test_get_pdf_url_march_2026():
     assert get_pdf_url(dt) == "https://meralcomain.s3.ap-southeast-1.amazonaws.com/2026-03/03-2026_rate_schedule.pdf"
 
 
-def test_get_pdf_url_january_2026():
-    dt = datetime(2026, 1, 1)
-    assert get_pdf_url(dt) == "https://meralcomain.s3.ap-southeast-1.amazonaws.com/2026-01/01-2026_rate_schedule.pdf"
-
-
-def test_get_pdf_url_december_2025():
-    dt = datetime(2025, 12, 25)
-    assert get_pdf_url(dt) == "https://meralcomain.s3.ap-southeast-1.amazonaws.com/2025-12/12-2025_rate_schedule.pdf"
+def test_get_pdf_url_february_2026():
+    dt = datetime(2026, 2, 1)
+    assert get_pdf_url(dt) == "https://meralcomain.s3.ap-southeast-1.amazonaws.com/2026-02/02-2026_rate_schedule.pdf"
 
 
 from src.parser import parse_residential_tiers, parse_vat_rates

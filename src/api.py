@@ -95,6 +95,11 @@ def _find_tier(data: list[dict], tier_name: str) -> dict | None:
     return None
 
 
+def _clean_response(data: dict) -> dict:
+    """Remove null error and warning fields from response."""
+    return {k: v for k, v in data.items() if not (k in ("error", "warning") and v is None)}
+
+
 @app.route("/")
 def index():
     return jsonify({
@@ -117,7 +122,7 @@ def health():
 @app.route("/rates")
 def rates():
     result = _fetch_and_cache()
-    return jsonify(result)
+    return jsonify(_clean_response(result))
 
 
 @app.route("/rates/<tier_slug>")
@@ -125,38 +130,35 @@ def rates_by_tier(tier_slug):
     result = _fetch_and_cache()
 
     if not result.get("success"):
-        return jsonify(result)
+        return jsonify(_clean_response(result))
 
     tier_name = TIER_SLUG_MAP.get(tier_slug)
     if not tier_name:
-        return jsonify({
+        return jsonify(_clean_response({
             "success": False,
             "error": "Tier not found",
-            "warning": None,
             "date": result.get("date"),
             "data": None,
             "meta": result.get("meta"),
-        }), 404
+        })), 404
 
     tier = _find_tier(result.get("data", []), tier_name)
     if not tier:
-        return jsonify({
+        return jsonify(_clean_response({
             "success": False,
             "error": "Tier not found",
-            "warning": None,
             "date": result.get("date"),
             "data": None,
             "meta": result.get("meta"),
-        }), 404
+        })), 404
 
-    return jsonify({
+    return jsonify(_clean_response({
         "success": True,
-        "error": None,
         "warning": result.get("warning"),
         "date": result.get("date"),
         "data": tier,
         "meta": result.get("meta"),
-    })
+    }))
 
 
 def main():

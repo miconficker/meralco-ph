@@ -86,6 +86,8 @@ def test_rates_returns_all_tiers(mock_get_rates, mock_datetime, client):
     assert data["success"] is True
     assert len(data["data"]) == 8
     assert data["date"] == "03/2026"
+    assert "error" not in data
+    assert "warning" not in data
 
 
 @patch("src.api.datetime")
@@ -100,6 +102,8 @@ def test_rates_typical(mock_get_rates, mock_datetime, client):
     assert data["success"] is True
     assert data["data"]["name"] == "101-200 kWh"
     assert data["data"]["rate"] == 13.7580
+    assert "error" not in data
+    assert "warning" not in data
 
 
 @patch("src.api.datetime")
