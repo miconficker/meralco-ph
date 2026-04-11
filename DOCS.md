@@ -1,6 +1,6 @@
 # MERALCO Electricity Rates Add-on
 
-This add-on scrapes the latest MERALCO residential electricity rates and exposes them to Home Assistant. Pick one of two modes:
+This add-on parses MERALCO's official residential bills PDF every month and exposes the per-kWh rates to Home Assistant. Pick one of two modes:
 
 - `mqtt` (default): Sensors appear automatically in Home Assistant via MQTT discovery. Requires the Mosquitto broker add-on (or any MQTT broker registered with the Supervisor).
 - `rest`: The add-on runs a REST API on port 5000. Add `rest:` sensors to `configuration.yaml` to consume them.

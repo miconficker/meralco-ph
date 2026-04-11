@@ -160,7 +160,7 @@ class MeralcoMQTTBridge:
             "identifiers": [DEVICE_ID],
             "name": DEVICE_NAME,
             "manufacturer": "MERALCO PH",
-            "model": "Rate Scraper",
+            "model": "Residential Bills PDF Parser",
             "sw_version": __version__,
         }
 
