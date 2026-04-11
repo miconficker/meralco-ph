@@ -146,24 +146,48 @@ def parse_residential_tiers(table: list[list]) -> list[dict]:
 
 
 def parse_vat_rates(table: list[list]) -> dict:
-    """Extract VAT rates from the bottom of the rate schedule table."""
+    """Extract VAT rates from the bottom of the rate schedule table.
+
+    Supports two PDF formats:
+    1. Separate cells per row, e.g. Mar 2026: ['Generation', '11.30%', ...]
+    2. Multi-line cell, e.g. Nov 2025: one big cell with embedded newlines
+    """
     vat = {"generation": 0.0, "transmission": 0.0, "system_loss": 0.0, "other": 12.0}
+    label_map = {
+        "generation": r'Generation',
+        "transmission": r'Transmission',
+        "system_loss": r'System\s+Loss',
+        "other": r'Other\s+Charges',
+    }
 
+    # Format 1: scan for "Label" cell with adjacent "X.XX%" cell
     for row in table:
-        label = (row[0] or '').strip()
-        rate_str = (row[1] or '').strip() if len(row) > 1 else ''
+        for i, cell in enumerate(row):
+            if not cell:
+                continue
+            label_text = str(cell).strip()
+            for key, label_re in label_map.items():
+                if re.fullmatch(label_re, label_text, re.IGNORECASE):
+                    # Look in next cells for a percentage
+                    for j in range(i + 1, min(i + 3, len(row))):
+                        next_cell = str(row[j] or '').strip()
+                        m = re.match(r'(\d+(?:\.\d+)?)\s*%', next_cell)
+                        if m:
+                            vat[key] = float(m.group(1))
+                            break
 
-        try:
-            if label == 'Generation' and '%' in rate_str:
-                vat["generation"] = float(rate_str.rstrip('%'))
-            elif label == 'Transmission' and '%' in rate_str:
-                vat["transmission"] = float(rate_str.rstrip('%'))
-            elif label == 'System Loss' and '%' in rate_str:
-                vat["system_loss"] = float(rate_str.rstrip('%'))
-            elif label == 'Other Charges' and '%' in rate_str:
-                vat["other"] = float(rate_str.rstrip('%'))
-        except ValueError:
-            logger.warning("Could not parse VAT rate for %s: %s", label, rate_str)
+    # Format 2: scan for "Label X.XX%" inline within a cell (multi-line cells)
+    inline_patterns = {k: rf'{v}\s+(\d+(?:\.\d+)?)\s*%' for k, v in label_map.items()}
+    for row in table:
+        for cell in row:
+            if not cell:
+                continue
+            text = str(cell)
+            for key, pattern in inline_patterns.items():
+                if vat[key] == 0.0 or (key == "other" and vat[key] == 12.0):
+                    m = re.search(pattern, text, re.IGNORECASE)
+                    if m:
+                        vat[key] = float(m.group(1))
 
     if vat["generation"] == 0.0 or vat["transmission"] == 0.0 or vat["system_loss"] == 0.0:
         logger.warning("Some VAT rates not found in PDF, using defaults: %s", vat)

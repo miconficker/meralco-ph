@@ -139,7 +139,18 @@ rest:
 | `rate_change_percent` | Percentage change from previous month | `4.93` |
 | `trend` | Rate direction: `up`, `down`, or `stable` | `"up"` |
 
-> **Note:** `rate` includes an estimated local franchise tax (~0.43%), derived from cross-validation against 5 months of MERALCO's published rates — matching within P0.01 for most months. `raw_rate` is the rate computed directly from the PDF without franchise tax. For `/rates/typical`, both values also include fixed monthly charges (supply, metering) amortized over 200 kWh.
+> **Note:** `rate` includes an estimated local franchise tax (0.4316%), derived from cross-validation against 6 months of MERALCO's published rates. Validated accuracy (Nov 2025 – Apr 2026):
+>
+> | Month | Published | Computed | Diff |
+> |---|---|---|---|
+> | Nov 2025 | P13.4702 | P13.4700 | -P0.0002 |
+> | Dec 2025 | P13.1145 | P13.1142 | -P0.0003 |
+> | Jan 2026 | P12.9508 | P13.0067 | +P0.0559 ⚠️ |
+> | Feb 2026 | P13.1734 | P13.1734 | P0.0000 |
+> | Mar 2026 | P13.8161 | P13.8174 | +P0.0013 |
+> | Apr 2026 | P14.3496 | P14.3507 | +P0.0011 |
+>
+> 5 out of 6 months match within ±P0.002. January 2026 is a known outlier — MERALCO's published figure for that month appears to exclude the local franchise tax, diverging from every other month. `raw_rate` is the rate computed directly from the PDF without franchise tax. For `/rates/typical`, both values also include fixed monthly charges (supply, metering) amortized over 200 kWh.
 
 ---
 
