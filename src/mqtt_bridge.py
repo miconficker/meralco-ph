@@ -175,3 +175,13 @@ class MeralcoMQTTBridge:
                 topic = self._discovery_topic(kwh, kind["suffix"])
                 payload = self._build_discovery_payload(kwh, kind)
                 self._client.publish(topic, json.dumps(payload), qos=1, retain=True)
+
+    def publish_state(self, rate_data: dict[int, dict[str, object]]) -> None:
+        """Publish one JSON payload per configured kWh level present in rate_data."""
+        for kwh in self.kwh_levels:
+            entry = rate_data.get(kwh)
+            if entry is None:
+                logger.debug("No rate data for kwh=%s, skipping", kwh)
+                continue
+            payload = json.dumps(entry)
+            self._client.publish(self._state_topic(kwh), payload, qos=1, retain=True)

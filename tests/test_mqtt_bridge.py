@@ -142,3 +142,65 @@ def test_trend_sensor_omits_unit_and_device_class(
     assert "device_class" not in payload
     assert "state_class" not in payload
     assert payload["value_template"] == "{{ value_json.trend }}"
+
+
+def _state_publish_calls(client: MagicMock) -> dict[str, dict[str, object]]:
+    """Decode every publish whose topic looks like a state topic."""
+    out: dict[str, dict[str, object]] = {}
+    for call in client.publish.call_args_list:
+        topic = call.args[0]
+        if topic.endswith("/config"):
+            continue
+        if not (topic == "meralco/state" or topic.startswith("meralco/state/")):
+            continue
+        out[topic] = json.loads(call.args[1])
+    return out
+
+
+def test_publish_state_writes_one_payload_per_kwh(mock_client: MagicMock) -> None:
+    """200 publishes to meralco/state, 300 publishes to meralco/state/300."""
+    from src.mqtt_bridge import MeralcoMQTTBridge
+
+    bridge = MeralcoMQTTBridge(host="broker.local", kwh_levels=[200, 300])
+
+    rate_data: dict[int, dict[str, object]] = {
+        200: {
+            "rate": 13.8161,
+            "rate_change": 0.6427,
+            "rate_change_percent": 4.88,
+            "trend": "up",
+        },
+        300: {
+            "rate": 14.5,
+            "rate_change": 0.5,
+            "rate_change_percent": 3.5,
+            "trend": "up",
+        },
+    }
+    bridge.publish_state(rate_data)
+
+    state_calls = _state_publish_calls(mock_client)
+
+    assert state_calls["meralco/state"]["rate"] == 13.8161
+    assert state_calls["meralco/state"]["trend"] == "up"
+    assert state_calls["meralco/state/300"]["rate"] == 14.5
+
+
+def test_publish_state_skips_levels_not_in_data(mock_client: MagicMock) -> None:
+    from src.mqtt_bridge import MeralcoMQTTBridge
+
+    bridge = MeralcoMQTTBridge(host="broker.local", kwh_levels=[200, 300])
+    bridge.publish_state(
+        {
+            200: {
+                "rate": 13.8,
+                "rate_change": 0,
+                "rate_change_percent": 0,
+                "trend": "stable",
+            }
+        }
+    )
+
+    state_calls = _state_publish_calls(mock_client)
+    assert "meralco/state" in state_calls
+    assert "meralco/state/300" not in state_calls
