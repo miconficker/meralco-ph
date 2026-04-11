@@ -135,6 +135,10 @@ def _get_mqtt_from_supervisor() -> MqttCredentials | None:
     """
     token = os.environ.get("SUPERVISOR_TOKEN")
     if not token:
+        logger.info(
+            "SUPERVISOR_TOKEN not set; skipping Supervisor MQTT discovery "
+            "(this is expected outside the Home Assistant add-on environment)"
+        )
         return None
 
     try:
