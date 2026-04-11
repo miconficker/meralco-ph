@@ -1,7 +1,7 @@
 """
-MERALCO MQTT Bridge
+Meralco MQTT Bridge
 
-Connects to an MQTT broker and publishes MERALCO electricity rate sensors
+Connects to an MQTT broker and publishes Meralco electricity rate sensors
 via Home Assistant MQTT discovery. One device, four sensors per kWh level
 in `kwh_levels`. The 200 kWh "typical" baseline is always exposed unsuffixed
 (meralco_rate, meralco_rate_change, etc.) so its entity IDs stay stable when
@@ -24,7 +24,7 @@ from src import __version__
 logger = logging.getLogger(__name__)
 
 DEVICE_ID = "meralco_ph"
-DEVICE_NAME = "MERALCO Electricity Rates"
+DEVICE_NAME = "Meralco Electricity Rates"
 
 # 200 kWh is the "typical household" baseline and is always exposed unsuffixed
 # so its entity IDs stay stable when users add/remove other levels.
@@ -119,7 +119,7 @@ SENSOR_KINDS: list[SensorKind] = [
 
 
 class MeralcoMQTTBridge:
-    """Manages an MQTT connection and HA discovery for MERALCO rate sensors."""
+    """Manages an MQTT connection and HA discovery for Meralco rate sensors."""
 
     def __init__(
         self,
@@ -160,7 +160,7 @@ class MeralcoMQTTBridge:
             "identifiers": [DEVICE_ID],
             "name": DEVICE_NAME,
             "manufacturer": "MERALCO PH",
-            "model": "Residential Bills PDF Parser",
+            "model": "Electricity Rates",
             "sw_version": __version__,
         }
 
