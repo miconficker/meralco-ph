@@ -1,5 +1,6 @@
 """Tests for the add-on configuration loader."""
 
+import json
 import os
 from collections.abc import Iterator
 from pathlib import Path
@@ -46,3 +47,33 @@ def test_read_addon_config_returns_documented_defaults(
     assert config["kwh_levels"] == [200]
     assert config["mqtt_topic_prefix"] == "meralco"
     assert config["mqtt_discovery_prefix"] == "homeassistant"
+
+
+def test_read_addon_config_loads_from_options_file(
+    clean_env: None, tmp_path: Path
+) -> None:
+    """When options.json exists, its values override defaults."""
+    from src.addon_main import read_addon_config
+
+    options_file = tmp_path / "options.json"
+    options_file.write_text(
+        json.dumps(
+            {
+                "mode": "rest",
+                "log_level": "debug",
+                "scan_interval": 7200,
+                "kwh_levels": [200, 300],
+                "mqtt_topic_prefix": "custom_prefix",
+                "mqtt_discovery_prefix": "homeassistant_test",
+            }
+        )
+    )
+
+    config = read_addon_config(options_path=options_file)
+
+    assert config["mode"] == "rest"
+    assert config["log_level"] == "debug"
+    assert config["scan_interval"] == 7200
+    assert config["kwh_levels"] == [200, 300]
+    assert config["mqtt_topic_prefix"] == "custom_prefix"
+    assert config["mqtt_discovery_prefix"] == "homeassistant_test"

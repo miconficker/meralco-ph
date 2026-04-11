@@ -6,11 +6,11 @@ and either publishes MERALCO rates to MQTT or hands off to gunicorn for
 the REST API.
 """
 
-import json  # noqa: F401
-import logging  # noqa: F401
+import json
+import logging
 import os  # noqa: F401
 from pathlib import Path
-from typing import TypedDict
+from typing import TypedDict, cast
 
 logger = logging.getLogger(__name__)
 
@@ -38,4 +38,17 @@ _DEFAULTS: AddonConfig = {
 
 def read_addon_config(options_path: Path = DEFAULT_OPTIONS_PATH) -> AddonConfig:
     """Load add-on options from /data/options.json with env var fallback."""
-    return dict(_DEFAULTS)  # type: ignore[return-value]
+    config: AddonConfig = cast(AddonConfig, dict(_DEFAULTS))
+
+    if options_path.is_file():
+        try:
+            options = json.loads(options_path.read_text())
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning("Failed to read add-on options at %s: %s", options_path, exc)
+        else:
+            for key in _DEFAULTS:
+                if key in options:
+                    config[key] = options[key]  # type: ignore[literal-required]
+            logger.info("Loaded add-on options from %s", options_path)
+
+    return config
