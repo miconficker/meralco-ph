@@ -41,13 +41,13 @@ pipenv run test
 
 ## MERALCO PDF URL Pattern Changes
 
-MERALCO hosts rate schedule PDFs on S3. If the URL pattern changes:
+MERALCO hosts residential bills PDFs on S3. If the URL pattern changes:
 
 1. Check for the current PDF at `https://meralcomain.s3.ap-southeast-1.amazonaws.com/`
 2. Update `get_pdf_url()` in `src/parser.py`
 3. Include the old and new patterns in your PR description
 
-If the PDF table structure changes (column order, header labels), update the `COL_*` constants and `parse_residential_tiers()` in `src/parser.py`.
+If the PDF table structure changes (e.g. different row labels or column layout), update `parse_residential_bills()` in `src/parser.py`.
 
 ## Reporting Issues
 

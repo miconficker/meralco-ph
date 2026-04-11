@@ -5,17 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0] - 2026-03-23
+## [2.0.0] - 2026-04-11
 
 ### Changed
 
-- **BREAKING**: Switched from web scraping to PDF-based rate parsing
-- New API routes: `/rates`, `/rates/typical`, `/rates/<tier>`
-- Response includes all 8 residential tiers with rate, rate_change, rate_change_percent, trend
+- **BREAKING**: Switched from web scraping to PDF-based rate parsing. Data source is MERALCO's official `residential_bills.pdf` — their own pre-computed bill table containing per-kWh rates at 15 consumption levels
+- **BREAKING**: API routes now accept kWh consumption levels (`/rates/200`, `/rates/500`, etc.) instead of news article metadata
+- Rates match MERALCO's published "typical household" article
+- New routes: `/rates`, `/rates/typical`, `/rates/<kwh>`
+- Response entries: `{kwh, rate, rate_change, rate_change_percent, trend}`
 - Month-over-month rate changes computed by diffing current and previous month PDFs
 - Standardized response shape with `success`, `error`, `warning`, `date`, `data`, `meta`
 - Renamed `src/scraper.py` to `src/parser.py`
 - Docker image significantly smaller (no Chromium dependency)
+
+### Added
+
+- `parse_residential_bills()` parser
+- `/rates/<kwh>` routes for 15 consumption levels (50, 70, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 3000, 5000)
+- `/rates/typical` as an alias for `/rates/200`
 
 ### Removed
 

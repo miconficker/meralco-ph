@@ -96,7 +96,7 @@ def _clean_response(data: dict) -> dict:
 def index():
     return jsonify({
         "service": "MERALCO API",
-        "version": "2.1.0",
+        "version": "2.0.0",
         "endpoints": {
             "/rates": "Get all consumption-level rates",
             "/rates/typical": "Get typical household (200 kWh) rate",

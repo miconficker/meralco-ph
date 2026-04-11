@@ -2,13 +2,13 @@
 
 Konnichiwassup! This is a REST API that provides current MERALCO (Manila Electric Company) electricity rates in the Philippines.
 
-MERALCO is the largest electric distribution utility company in the Philippines, serving Metro Manila and nearby provinces. This API automatically parses the latest monthly electricity rates from MERALCO's official rate schedule PDFs, making it easy to integrate real-time rate data into your Home Assistant setup or any other automation platform.
+MERALCO is the largest electric distribution utility company in the Philippines, serving Metro Manila and nearby provinces. This API automatically parses MERALCO's monthly residential bills and serves per-kWh rates at every consumption level they publish. Rates match MERALCO's published [typical household article](https://company.meralco.com.ph/news-and-advisories/higher-residential-rates-april-2026).
 
-**✨ Features:**
+## ✨ Features
 
-- All 8 residential rate tiers with VAT-inclusive computation
+- Rates at 15 consumption levels: 50, 70, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 3000, 5000 kWh
 - Month-over-month rate changes with trend indicator
-- `/rates/typical` endpoint for the 101-200 kWh tier commonly referenced in MERALCO news articles
+- `/rates/typical` endpoint — matches MERALCO's published "typical household" (200 kWh) rate exactly
 - Caches data to minimize requests (refreshes monthly)
 - Returns previous month's rates if current month is unavailable
 - Lightweight REST API with health check endpoint
@@ -47,16 +47,16 @@ docker run -d -p 5000:5000 --name meralco-ph ghcr.io/rairulyle/meralco-ph:latest
 
 ## 📡 API Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /rates` | All 8 residential tier rates |
-| `GET /rates/typical` | Typical household (101-200 kWh) tier rate |
-| `GET /rates/<tier>` | Specific tier (e.g. `/rates/101-200`, `/rates/over-400`) |
-| `GET /health` | Health check |
+| Endpoint             | Description                                                                                                                                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /rates`         | All 15 consumption levels                                                                                                                                   |
+| `GET /rates/typical` | Typical household (200 kWh) — matches MERALCO's published [article](https://company.meralco.com.ph/news-and-advisories/higher-residential-rates-april-2026) |
+| `GET /rates/<kwh>`   | Specific consumption level (e.g. `/rates/100`, `/rates/500`)                                                                                                |
+| `GET /health`        | Health check                                                                                                                                                |
 
-### Valid tier slugs
+### Valid consumption levels
 
-`0-20`, `21-50`, `51-70`, `71-100`, `101-200`, `201-300`, `301-400`, `over-400`, `typical`
+`50`, `70`, `100`, `200`, `300`, `400`, `500`, `600`, `700`, `800`, `900`, `1000`, `1500`, `3000`, `5000`, `typical` (alias for 200)
 
 ## 🏠 Home Assistant Integration
 
@@ -82,7 +82,7 @@ rest:
 
 ## 📋 Output Format
 
-### `GET /rates` — All tiers
+### `GET /rates` — All consumption levels
 
 ```json
 {
@@ -90,69 +90,56 @@ rest:
   "date": "03/2026",
   "data": [
     {
-      "name": "0-20 kWh",
-      "min_kwh": 0,
-      "max_kwh": 20,
-      "rate": 13.6972,
-      "raw_rate": 13.6383,
-      "rate_change": 0.6412,
-      "rate_change_percent": 4.93,
+      "kwh": 50,
+      "rate": 14.1766,
+      "rate_change": 0.6289,
+      "rate_change_percent": 4.65,
+      "trend": "up"
+    },
+    ...
+    {
+      "kwh": 200,
+      "rate": 13.8161,
+      "rate_change": 0.6427,
+      "rate_change_percent": 4.88,
       "trend": "up"
     },
     ...
   ],
   "meta": {
     "timestamp": "2026-03-24T02:09:08.653424",
-    "source": "https://meralcomain.s3.ap-southeast-1.amazonaws.com/2026-03/03-2026_rate_schedule.pdf"
+    "source": "https://meralcomain.s3.ap-southeast-1.amazonaws.com/2026-03/03-2026_residential_bills.pdf"
   }
 }
 ```
 
-### `GET /rates/typical` — Single tier
+### `GET /rates/typical` — 200 kWh household
 
 ```json
 {
   "success": true,
   "date": "03/2026",
   "data": {
-    "name": "101-200 kWh",
-    "min_kwh": 101,
-    "max_kwh": 200,
-    "rate": 13.8173,
-    "raw_rate": 13.758,
-    "rate_change": 0.6412,
-    "rate_change_percent": 4.93,
+    "kwh": 200,
+    "rate": 13.8161,
+    "rate_change": 0.6427,
+    "rate_change_percent": 4.88,
     "trend": "up"
   },
   "meta": {
     "timestamp": "2026-03-24T02:09:08.653424",
-    "source": "https://meralcomain.s3.ap-southeast-1.amazonaws.com/2026-03/03-2026_rate_schedule.pdf"
+    "source": "https://meralcomain.s3.ap-southeast-1.amazonaws.com/2026-03/03-2026_residential_bills.pdf"
   }
 }
 ```
 
-| Field | Description | Example |
-|-------|-------------|---------|
-| `rate` | Rate per kWh with estimated local franchise tax (~0.43%) | `13.8173` |
-| `raw_rate` | Rate per kWh from PDF (VAT included, no franchise tax) | `13.758` |
-| `rate_change` | Change from previous month (negative = decrease) | `0.6412` |
-| `rate_change_percent` | Percentage change from previous month | `4.93` |
-| `trend` | Rate direction: `up`, `down`, or `stable` | `"up"` |
-
-> **Note:** `rate` includes an estimated local franchise tax (0.4316%), derived from cross-validation against 6 months of MERALCO's published rates. Validated accuracy (Nov 2025 – Apr 2026):
->
-> | Month | Published | Computed | Diff |
-> |---|---|---|---|
-> | Nov 2025 | P13.4702 | P13.4700 | -P0.0002 |
-> | Dec 2025 | P13.1145 | P13.1142 | -P0.0003 |
-> | Jan 2026 | P12.9508 | P13.0067 | +P0.0559 ⚠️ |
-> | Feb 2026 | P13.1734 | P13.1734 | P0.0000 |
-> | Mar 2026 | P13.8161 | P13.8174 | +P0.0013 |
-> | Apr 2026 | P14.3496 | P14.3507 | +P0.0011 |
->
-> 5 out of 6 months match within ±P0.002. January 2026 is a known outlier — MERALCO's published figure for that month appears to exclude the local franchise tax, diverging from every other month. `raw_rate` is the rate computed directly from the PDF without franchise tax. For `/rates/typical`, both values also include fixed monthly charges (supply, metering) amortized over 200 kWh.
-
----
+| Field                 | Description                                                      | Example   |
+| --------------------- | ---------------------------------------------------------------- | --------- |
+| `kwh`                 | Consumption level in kWh                                         | `200`     |
+| `rate`                | Final per-kWh rate (PHP, matches MERALCO published rate exactly) | `13.8161` |
+| `rate_change`         | Change from previous month (negative = decrease)                 | `0.6427`  |
+| `rate_change_percent` | Percentage change from previous month                            | `4.88`    |
+| `trend`               | Rate direction: `up`, `down`, or `stable`                        | `"up"`    |
 
 ## 🔧 Manual Installation
 
