@@ -15,9 +15,51 @@ MERALCO is the largest electric distribution utility company in the Philippines,
 - Docker-ready for easy deployment
 - Home Assistant Add-on
 
-## 🚀 Quick Start (Recommended)
+## 🏠 Home Assistant Add-on (Recommended)
 
-Create a `docker-compose.yml` file:
+The easiest way to use MERALCO PH with Home Assistant. Install the add-on and sensor entities are created automatically via MQTT discovery, no manual `configuration.yaml` editing needed.
+
+[![Add repository to my Home Assistant][repository-badge]][repository-url]
+
+[repository-badge]: https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg
+[repository-url]: https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Frairulyle%2Fmeralco-ph
+
+### Prerequisites
+
+- A running **Home Assistant Supervisor** install (Home Assistant OS or Supervised). Home Assistant Container is not supported because it has no add-on store.
+- The official **Mosquitto broker** add-on installed and running.
+- The **MQTT integration** configured in Home Assistant (this happens automatically when Mosquitto is installed and started).
+
+If you don't have an MQTT broker yet, install the Mosquitto broker add-on first: **Settings → Add-ons → Add-on Store → Mosquitto broker → Install → Start**.
+
+### Installation
+
+1. Click the **Add repository** button above, or manually add the repository in **Settings → Add-ons → Add-on Store → ⋮ (top right) → Repositories** and paste:
+
+   ```
+   https://github.com/rairulyle/meralco-ph
+   ```
+
+2. Refresh the Add-on Store page, find **MERALCO Electricity Rates**, and click **Install**.
+
+3. Open the **Configuration** tab. Defaults are fine for most users; see [DOCS.md](DOCS.md) for the full options reference.
+
+4. Click **Start** on the **Info** tab.
+
+5. Check **Settings → Devices & Services → MQTT**. A new **MERALCO Electricity Rates** device should appear with sensors for each level in `kwh_levels` (default: 200 kWh).
+
+### Sensors created
+
+For each entry in `kwh_levels`, the add-on creates four sensors under one device. The 200 kWh "typical" baseline is always exposed unsuffixed so dashboards stay stable when you add or remove other levels:
+
+- `sensor.meralco_rate`, `sensor.meralco_rate_change`, `sensor.meralco_rate_change_percent`, `sensor.meralco_trend`: always 200 kWh
+- `sensor.meralco_rate_<kwh>kwh`, etc.: for every other level (e.g. `300`, `500`)
+
+Example: with `kwh_levels: [200, 300]` you get eight sensors total.
+
+## 🐳 Standalone Docker (alternative)
+
+If you're not using Home Assistant Supervisor, or you prefer the REST API over MQTT, you can run the standalone container with `docker compose`:
 
 ```yaml
 services:
@@ -37,7 +79,7 @@ Then run:
 docker compose up -d
 ```
 
-The API will be available at `http://localhost:5000/rates`
+The API will be available at `http://localhost:5000/rates`.
 
 ### Alternative: Using Docker run
 
@@ -45,45 +87,9 @@ The API will be available at `http://localhost:5000/rates`
 docker run -d -p 5000:5000 --name meralco-ph ghcr.io/rairulyle/meralco-ph:latest
 ```
 
-## 📡 API Endpoints
+### Consuming the standalone API from Home Assistant
 
-| Endpoint             | Description                                                                                                                                                 |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /rates`         | All 15 consumption levels                                                                                                                                   |
-| `GET /rates/typical` | Typical household (200 kWh), matches MERALCO's published [article](https://company.meralco.com.ph/news-and-advisories/higher-residential-rates-april-2026) |
-| `GET /rates/<kwh>`   | Specific consumption level (e.g. `/rates/100`, `/rates/500`)                                                                                                |
-| `GET /health`        | Health check                                                                                                                                                |
-
-### Valid consumption levels
-
-`50`, `70`, `100`, `200`, `300`, `400`, `500`, `600`, `700`, `800`, `900`, `1000`, `1500`, `3000`, `5000`, `typical` (alias for 200)
-
-## 🏠 Home Assistant Add-on
-
-Install MERALCO rates as a Home Assistant Supervisor add-on. Two modes:
-
-- `mqtt` (default): Sensors appear automatically via MQTT discovery, no YAML editing required. Needs the Mosquitto broker add-on.
-- `rest`: Run the REST API on port 5000 and consume it via the built-in `rest:` integration.
-
-### Install
-
-1. In Home Assistant, go to Settings, then Add-ons, then Add-on store.
-2. Open the menu in the top-right and choose Repositories.
-3. Add `https://github.com/rairulyle/meralco-ph` and click Add.
-4. Install MERALCO Electricity Rates, configure the options, and start it.
-
-See [DOCS.md](DOCS.md) for the full options reference and a worked example for each mode.
-
-### Sensors created in `mqtt` mode
-
-For each entry in `kwh_levels`, the add-on creates four sensors under one device. The 200 kWh "typical" baseline is always exposed unsuffixed so dashboards stay stable when you add or remove other levels:
-
-- `sensor.meralco_rate`, `sensor.meralco_rate_change`, `sensor.meralco_rate_change_percent`, `sensor.meralco_trend`: always 200 kWh
-- `sensor.meralco_rate_<kwh>kwh`, etc.: for every other level (e.g. `300`, `500`)
-
-### Using the standalone Docker image with `rest:` (existing pattern)
-
-If you prefer to keep running the standalone Docker image instead of the add-on, the existing `rest:` integration still works:
+If you're running the standalone container alongside Home Assistant (e.g. on the same host or LAN), use the built-in `rest:` integration to expose the rates as sensors. Add to `configuration.yaml`:
 
 ```yaml
 rest:
@@ -102,6 +108,19 @@ rest:
       - name: "MERALCO - Trend"
         value_template: "{{ value_json.data.trend }}"
 ```
+
+## 📡 API Endpoints
+
+| Endpoint             | Description                                                                                                                                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /rates`         | All 15 consumption levels                                                                                                                                   |
+| `GET /rates/typical` | Typical household (200 kWh), matches MERALCO's published [article](https://company.meralco.com.ph/news-and-advisories/higher-residential-rates-april-2026) |
+| `GET /rates/<kwh>`   | Specific consumption level (e.g. `/rates/100`, `/rates/500`)                                                                                                |
+| `GET /health`        | Health check                                                                                                                                                |
+
+### Valid consumption levels
+
+`50`, `70`, `100`, `200`, `300`, `400`, `500`, `600`, `700`, `800`, `900`, `1000`, `1500`, `3000`, `5000`, `typical` (alias for 200)
 
 ## 📋 Output Format
 
