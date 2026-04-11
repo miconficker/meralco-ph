@@ -8,6 +8,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src/ ./src/
 
-EXPOSE 5000
+# Copy s6-overlay service definitions. The run script uses
+# `#!/usr/bin/with-contenv bashio` so SUPERVISOR_TOKEN and other
+# Supervisor-injected env vars are available to the Python process.
+COPY rootfs /
 
-CMD ["python", "-m", "src.addon_main"]
+EXPOSE 5000

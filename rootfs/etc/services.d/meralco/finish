@@ -1,0 +1,7 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# MERALCO Electricity Rates Add-on
+# Graceful shutdown handler invoked by s6 when the run script exits.
+# ==============================================================================
+
+bashio::log.info "MERALCO add-on stopped."

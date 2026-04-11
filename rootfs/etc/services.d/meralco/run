@@ -1,0 +1,12 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# MERALCO Electricity Rates Add-on
+# Starts the add-on entry point. Using `with-contenv bashio` is critical:
+# it loads /var/run/s6/container_environment/* into the process env, which
+# is how Supervisor injects SUPERVISOR_TOKEN. Without this wrapper, the
+# Python process inherits an empty env and cannot reach the Supervisor API.
+# ==============================================================================
+
+bashio::log.info "Starting MERALCO Electricity Rates add-on..."
+
+exec python3 -m src.addon_main
