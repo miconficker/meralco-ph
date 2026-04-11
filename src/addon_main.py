@@ -8,7 +8,7 @@ the REST API.
 
 import json
 import logging
-import os  # noqa: F401
+import os
 from pathlib import Path
 from typing import TypedDict, cast
 
@@ -40,6 +40,8 @@ def read_addon_config(options_path: Path = DEFAULT_OPTIONS_PATH) -> AddonConfig:
     """Load add-on options from /data/options.json with env var fallback."""
     config: AddonConfig = cast(AddonConfig, dict(_DEFAULTS))
 
+    _apply_env_vars(config)
+
     if options_path.is_file():
         try:
             options = json.loads(options_path.read_text())
@@ -52,3 +54,27 @@ def read_addon_config(options_path: Path = DEFAULT_OPTIONS_PATH) -> AddonConfig:
             logger.info("Loaded add-on options from %s", options_path)
 
     return config
+
+
+def _apply_env_vars(config: AddonConfig) -> None:
+    """Overlay environment-variable overrides on top of defaults (mutates config)."""
+    if value := os.environ.get("MODE"):
+        config["mode"] = value
+    if value := os.environ.get("LOG_LEVEL"):
+        config["log_level"] = value
+    if value := os.environ.get("SCAN_INTERVAL"):
+        try:
+            config["scan_interval"] = int(value)
+        except ValueError:
+            logger.warning("Invalid SCAN_INTERVAL=%s, using default", value)
+    if value := os.environ.get("KWH_LEVELS"):
+        try:
+            config["kwh_levels"] = [
+                int(v.strip()) for v in value.split(",") if v.strip()
+            ]
+        except ValueError:
+            logger.warning("Invalid KWH_LEVELS=%s, using default", value)
+    if value := os.environ.get("MQTT_TOPIC_PREFIX"):
+        config["mqtt_topic_prefix"] = value
+    if value := os.environ.get("MQTT_DISCOVERY_PREFIX"):
+        config["mqtt_discovery_prefix"] = value
