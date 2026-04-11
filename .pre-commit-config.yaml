@@ -1,13 +1,22 @@
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.10
+  - repo: local
     hooks:
       - id: ruff
-        args: [--fix]
-      - id: ruff-format
+        name: ruff
+        entry: pipenv run ruff check --fix
+        language: system
+        types_or: [python, pyi]
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.20.0
-    hooks:
+      - id: ruff-format
+        name: ruff-format
+        entry: pipenv run ruff format
+        language: system
+        types_or: [python, pyi]
+
       - id: mypy
-        args: [--strict]
+        name: mypy
+        entry: pipenv run mypy
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+        require_serial: true
