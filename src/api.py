@@ -169,7 +169,7 @@ def index() -> ResponseReturnValue:
     return jsonify(
         {
             "service": "MERALCO API",
-            "version": "2.0.0",
+            "version": "2.0.2",
             "endpoints": {
                 "/rates": "Get all consumption-level rates",
                 "/rates/typical": "Get typical household (200 kWh) rate",
