@@ -29,7 +29,7 @@ MERALCO is the largest electric distribution utility company in the Philippines,
 
 The easiest way to use MERALCO PH with Home Assistant. Install the add-on and sensor entities are created automatically via MQTT discovery, no manual `configuration.yaml` editing needed.
 
-[Add repository to my Home Assistant](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Frairulyle%2Fmeralco-ph)
+[![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.][repository-badge]][repository-url]
 
 ### Prerequisites
 
@@ -255,3 +255,5 @@ MIT License, see [LICENSE](LICENSE) for details.
 [commits]: https://github.com/rairulyle/meralco-ph/commits/main
 [bmc-shield]: https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black
 [bmc]: https://buymeacoffee.com/rairulyle
+[repository-badge]: https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg
+[repository-url]: https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Frairulyle%2Fmeralco-ph
